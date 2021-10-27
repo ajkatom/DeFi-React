@@ -1,13 +1,16 @@
-import React, { Component, useState, useEffect } from 'react'
-import Web3 from 'web3'
-import Navbar from './Navbar'
-import './App.css'
+import React, { useState, useEffect } from 'react';
+import Web3 from 'web3';
+import Navbar from './Navbar';
+import './App.css';
+import DaiToken from '../abis/DaiToken.json';
+import DappToken from '../abis/DappToken.json';
+import TokenFarm from '../abis/TokenFarm.json';
 
  const App = (props) => {
   const [state, setState] = useState(
     { 
       account: '0x0',
-      diaToken: {},
+      daiToken: {},
       dappToken: {},
       tokenFarm: {},
       diaTokenBalance: '0',
@@ -33,17 +36,62 @@ import './App.css'
   async function loadBlockchainData(){
     const web3 = window.web3;
     const accounts = await web3.eth.getAccounts();
-    console.log(accounts);
-    setState(prevState => ({...prevState, account: accounts[0]}));
-  }
+    setState(state => ({...state, account: accounts[0]}));
+    const netWorkId = await web3.eth.net.getId();
+    const daiTokenData = DaiToken.networks[netWorkId];
+    const dappTokenData = DappToken.networks[netWorkId];
+    const tokenFarmData = DappToken.networks[netWorkId];
+
+    // Load DiaToken
+    if(daiTokenData){
+      const daiToken = new web3.eth.Contract(DaiToken.abi, daiTokenData.address);
+      setState(state => ({...state, daiToken: daiToken}));
+      let daiTokenBalance = await daiToken.methods.balanceOf(accounts[0]).call();
+      setState(state => ({...state, diaTokenBalance : daiTokenBalance.toString()}));
+    }
+     else{
+       window.alert('DappToken contract was not depolyed to detected network');
+      }
+
+      // Load DappToken
+      if(dappTokenData){
+        const dappToken = new web3.eth.Contract(DappToken.abi, dappTokenData.address);
+        setState(state => ({...state, dappToken: dappToken}));
+        let dappTokenBalance = await dappToken.methods.balanceOf(accounts[0]).call();
+        setState(state => ({...state, dappTokenBalance : dappTokenBalance.toString()}));
+      }
+      else{
+        window.alert('DappToken contract was not depolyed to detected network');
+      }
+
+      // Load TokenFarm
+      
+      if(tokenFarmData){
+        const tokenFarm = new web3.eth.Contract(TokenFarm.abi, tokenFarmData.address);
+        setState(state => ({...state, tokenFarm: tokenFarm}));
+        let stakingBalance = await tokenFarm.methods.stakingBalance(accounts[0]).call();
+        setState(state => ({...state, stakingBalance : stakingBalance.toString()}));
+      }
+      else{
+        window.alert('TokenFarm contract was not depolyed to detected network');
+      }
+   }
+  
+
+
 
   useEffect(()=>{
    loadWeb3();
    loadBlockchainData(); 
   },[]);
   
+  // useEffect(()=>{
+  //   loadBlockchainData()
+  // },[state.account]);
+  
   return (
     <div>
+        {console.log(state)}
           <Navbar account={state.account} />
           <div className="container-fluid mt-5">
             <div className="row">
